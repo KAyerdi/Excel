@@ -94,6 +94,7 @@
     const getColumn = i => String.fromCharCode(FIRST_CHAR_CODE + i)
 
     let selectedColumn = null
+    let selectedRow = null
 
     let STATE = times(COLUMNS)
       .map(i => times(ROWS).map(j => ({ computedValue: 0, value: 0 })))
@@ -144,17 +145,40 @@
 
       const formula = value.slice(1)
 
+      const rangeRegex = /([A-Z])(\d+):([A-Z])(\d+)/
+      let processedFormula = formula
+
+      if (rangeRegex.test(formula)) {
+        processedFormula = formula.replace(rangeRegex, (match, col1, row1, col2, row2) => {
+          const start = {
+            col: col1.charCodeAt(0) - FIRST_CHAR_CODE,
+            row: parseInt(row1) - 1
+          }
+          const end = {
+            col: col2.charCodeAt(0) - FIRST_CHAR_CODE,
+            row: parseInt(row2) - 1
+          }
+
+          let sum = 0
+          for (let col = start.col; col <= end.col; col++) {
+            for (let row = start.row; row <= end.row; row++) {
+              const value = STATE[col][row].computedValue
+              if (typeof value === 'number') sum += value
+            }
+          }
+          return sum
+        })
+      }
+
       let computedValue
       try {
         computedValue = eval(`(() => {
-        ${constants}
-        return ${formula};
-      })()`)
+          ${constants}
+          return ${processedFormula};
+        })()`)
       } catch (e) {
         computedValue = `!ERROR: ${e.message}`
       }
-
-      console.log({ value, computedValue })
 
       return computedValue
     }
@@ -188,24 +212,27 @@
 
       const { x, y } = td.dataset
       const input = td.querySelector('input')
-      const span = td.querySelector('span')
+
+      $$('.selected').forEach(el => el.classList.remove('selected'))
+      selectedColumn = null
+      selectedRow = null
+
+      if (x === undefined) {
+        selectedRow = parseInt(y)
+        td.parentElement.querySelectorAll('td').forEach(el => el.classList.add('selected'))
+        return
+      }
 
       const end = input.value.length
       input.setSelectionRange(end, end)
       input.focus()
-
-      $$('.selected').forEach(el => el.classList.remove('selected'))
-      selectedColumn = null
 
       input.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') input.blur()
       })
 
       input.addEventListener('blur', () => {
-        console.log({ value: input.value, state: STATE[x][y].value })
-
         if (input.value === STATE[x][y].value) return
-
         updateCell({ x, y, value: input.value })
       }, { once: true })
     })
@@ -225,21 +252,31 @@
     })
 
     document.addEventListener('keydown', event => {
-      if (event.key === 'Backspace' && selectedColumn !== null) {
-        times(ROWS).forEach(row => {
-          updateCell({ x: selectedColumn, y: row, value: '' })
-        })
+      if (event.key === 'Backspace') {
+        if (selectedColumn !== null) {
+          times(ROWS).forEach(row => {
+            updateCell({ x: selectedColumn, y: row, value: '' })
+          })
+        } else if (selectedRow !== null) {
+          times(COLUMNS).forEach(col => {
+            updateCell({ x: col, y: selectedRow, value: '' })
+          })
+        }
         renderSpreadSheet()
       }
     })
-
     document.addEventListener('copy', event => {
       if (selectedColumn !== null) {
         const columnValues = times(ROWS).map(row => {
           return STATE[selectedColumn][row].computedValue
         })
-
         event.clipboardData.setData('text/plain', columnValues.join('\n'))
+        event.preventDefault()
+      } else if (selectedRow !== null) {
+        const rowValues = times(COLUMNS).map(col => {
+          return STATE[col][selectedRow].computedValue
+        })
+        event.clipboardData.setData('text/plain', rowValues.join('\t'))
         event.preventDefault()
       }
     })
