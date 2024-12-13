@@ -84,6 +84,13 @@
       color: #333;
       margin: 1rem 0;
     }
+    
+    .header-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
   </style>
   <script type="module">
     const $ = el => document.querySelector(el)
@@ -305,9 +312,11 @@
 </head>
 
 <body>
-  <h2>Excel creado por Kevin Ayerdi</h2>
-  <img
-    src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Microsoft_Excel_2013-2019_logo.svg/1200px-Microsoft_Excel_2013-2019_logo.svg.png" />
+  <div class="header-container">
+    <img
+      src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Microsoft_Excel_2013-2019_logo.svg/1200px-Microsoft_Excel_2013-2019_logo.svg.png" />
+    <h2>Excel creado por Kevin Ayerdi</h2>
+  </div>
 
   <table>
     <thead></thead>
